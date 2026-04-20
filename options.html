@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DSA Reviser Settings</title>
+  <style>
+    body { font-family: Arial; max-width: 500px; margin: 40px auto; padding: 20px; }
+    h1 { color: #333; }
+    .setting { background: #f5f5f5; padding: 20px; margin: 15px 0; border-radius: 8px; }
+    label { display: block; font-weight: bold; margin-bottom: 8px; }
+    input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+    button { background: #28a745; color: white; padding: 12px 30px; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px; font-weight: bold; }
+    button:hover { background: #218838; }
+    .success { color: green; margin-top: 10px; font-weight: bold; display: none; }
+  </style>
+</head>
+<body>
+  <h1>DSA Reviser - Settings</h1>
+  
+  <div class="setting">
+    <label>Daily Reminder Time:</label>
+    <input type="time" id="reminderTime" value="09:00" />
+    <p style="font-size: 12px; color: #666;">Set when you want to be reminded (24-hour format)</p>
+  </div>
+
+  <button id="saveBtn">Save Settings</button>
+  <div class="success" id="success">✅ Settings saved!</div>
+
+  <script src="options.js"></script>
+</body>
+</html>
