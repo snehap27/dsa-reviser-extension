@@ -35,3 +35,5 @@ No data is collected or sent externally.
 
 ## Screenshots
 <img width="956" height="438" alt="image" src="https://github.com/user-attachments/assets/5b69583c-db39-445c-ba09-a21623a19d74" />
+<img width="1280" height="800" alt="dsa-reviser2 (1)" src="https://github.com/user-attachments/assets/f4bad94d-cfcf-4036-9967-a2afd98eefe9" />
+<img width="1280" height="800" alt="dsa-reviser3 (1)" src="https://github.com/user-attachments/assets/92487b85-f0ac-4dd0-8384-4a37332561f0" />
