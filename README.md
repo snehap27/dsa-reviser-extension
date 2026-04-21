@@ -32,3 +32,6 @@ No data is collected or sent externally.
 2. Enable Developer Mode
 3. Click "Load unpacked"
 4. Select this folder
+
+## Screenshots
+<img width="956" height="438" alt="image" src="https://github.com/user-attachments/assets/5b69583c-db39-445c-ba09-a21623a19d74" />
