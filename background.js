@@ -3,15 +3,16 @@ function notifyIfDue() {
   chrome.storage.local.get(["problems"], (res) => {
     const problems = res.problems || [];
     const today = new Date();
-    const due = problems.filter(p => new Date(p.nextRevisionDate) <= today);
-    
+    const due = problems.filter(p => 
+      p.nextRevisionDate && new Date(p.nextRevisionDate) <= today
+    );
     if (due.length > 0) {
       const notifId = "dsa-" + Math.random();
       const opts = {
         type: "basic",
-        iconUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        iconUrl: "icon-128.png",
         title: "DSA Revision",
-        message: due.length + " problem(s) to revise!"
+        message: due.length + "problem(s) to revise!"
       };
       chrome.notifications.create(notifId, opts);
     }

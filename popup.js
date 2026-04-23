@@ -185,7 +185,9 @@ document.addEventListener("click", (e) => {
           p.revisionHistory.push({ date: today.toISOString() });
 
           // next revision
-          const step = p.revisionHistory.length;
+          // const step = p.revisionHistory.length;
+          // const days = p.revisionConfig.steps[step] || 14;
+          const step = p.revisionHistory.length - 1;
           const days = p.revisionConfig.steps[step] || 14;
 
           const nextDate = new Date();

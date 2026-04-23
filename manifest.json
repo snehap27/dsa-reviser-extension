@@ -4,7 +4,7 @@
   "version": "1.0",
   "description": "Never forget Data Structures & Algorithms with spaced repetition. Save LeetCode problems and revise based on your custom preference.",
 
-  "permissions": ["storage", "activeTab", "scripting", "alarms", "notifications"],
+  "permissions": ["storage", "activeTab", "alarms", "notifications"],
   
   "icons": {
     "16": "icon-16.png",
