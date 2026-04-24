@@ -1,147 +1,46 @@
-function showDifficultyModal(title, url) {
-  // Create modal overlay
-  const overlay = document.createElement("div");
-  overlay.style.position = "fixed";
-  overlay.style.top = "0";
-  overlay.style.left = "0";
-  overlay.style.width = "100%";
-  overlay.style.height = "100%";
-  overlay.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-  overlay.style.zIndex = "10000";
-  overlay.style.display = "flex";
-  overlay.style.justifyContent = "center";
-  overlay.style.alignItems = "center";
+/**
+ * DSA Reviser - Content Script
+ * Scoped to: https://leetcode.com/problems/*
+ */
 
-  // Create modal dialog
-  const modal = document.createElement("div");
-  modal.style.backgroundColor = "white";
-  modal.style.padding = "28px";
-  modal.style.borderRadius = "12px";
-  modal.style.minWidth = "420px";
-  modal.style.boxShadow = "0 8px 16px rgba(0, 0, 0, 0.2)";
-  modal.style.zIndex = "10001";
-  modal.style.fontFamily = "Arial, sans-serif";
+// --- UTILITY HELPERS ---
 
-  modal.innerHTML = `
-    <div style="margin-bottom: 20px; border-bottom: 2px solid #28a745; padding-bottom: 15px;">
-      <h2 style="margin: 0; color: #333; font-size: 18px;">Save Problem</h2>
-      <p style="margin: 8px 0 0 0; color: #666; font-size: 14px;">${title}</p>
-    </div>
-
-    <div style="margin-bottom: 20px;">
-      <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333; font-size: 14px;">
-        🎯 Difficulty Level
-      </label>
-      <p style="margin: 0 0 8px 0; color: #666; font-size: 12px;">e.g., Easy, Medium, Hard, Tricky, Edge Cases, etc.</p>
-      <input 
-        type="text" 
-        id="difficulty" 
-        placeholder="Enter difficulty..." 
-        style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;"
-      />
-    </div>
-
-    <div style="margin-bottom: 25px;">
-      <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333; font-size: 14px;">
-        📅 Spaced Repetition Days (Optional)
-      </label>
-      <p style="margin: 0 0 8px 0; color: #666; font-size: 12px;">3 values separated by commas. Leave blank for default (2, 7, 10)</p>
-      <input 
-        type="text" 
-        id="customIntervals" 
-        placeholder="e.g., 1,5,14" 
-        style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box;"
-      />
-    </div>
-
-    <div style="display: flex; gap: 12px;">
-      <button id="modal-save" style="flex: 1; padding: 14px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background 0.2s;">Save Problem</button>
-      <button id="modal-cancel" style="flex: 1; padding: 14px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background 0.2s;">Cancel</button>
-    </div>
-  `;
-
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
-
-  // Handle Save
-  const saveBtn = document.getElementById("modal-save");
-  const cancelBtn = document.getElementById("modal-cancel");
-  
-  saveBtn.onmouseover = () => { saveBtn.style.background = "#218838"; };
-  saveBtn.onmouseout = () => { saveBtn.style.background = "#28a745"; };
-  
-  cancelBtn.onmouseover = () => { cancelBtn.style.background = "#d0d0d0"; };
-  cancelBtn.onmouseout = () => { cancelBtn.style.background = "#e0e0e0"; };
-
-  saveBtn.onclick = () => {
-    const difficulty = document.getElementById("difficulty").value.trim() || "Unspecified";
-    const customIntervalsInput = document.getElementById("customIntervals").value.trim();
-    
-    let intervals = [2, 7, 10]; // default
-    if (customIntervalsInput) {
-      try {
-        intervals = customIntervalsInput.split(",").map(x => parseInt(x.trim()));
-
-        if (intervals.some(isNaN)) {
-          alert("Invalid interval format. Use numbers like 1,5,14");
-          return;
-        }
-        if (intervals.length < 3) {
-          alert("Please provide at least 3 interval values");
-          return;
-        }
-      } catch {
-        alert("Invalid interval format. Use comma-separated numbers.");
-        return;
-      }
-    }
-
-    saveProblem(title, url, difficulty, intervals);
-    overlay.remove();
-  };
-
-  // Handle Cancel
-  cancelBtn.onclick = () => {
-    overlay.remove();
-  };
+// Safely creates elements with styles and text (Anti-XSS approach)
+function createStyledElement(tag, styles = {}, text = "") {
+  const el = document.createElement(tag);
+  Object.assign(el.style, styles);
+  if (text) el.textContent = text;
+  return el;
 }
 
-// ---------- CONFETTI ANIMATION ----------
-function triggerConfetti() {
-  const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F", "#BB8FCE"];
-  
-  for (let i = 0; i < 50; i++) {
-    const confetti = document.createElement("div");
-    confetti.style.position = "fixed";
-    confetti.style.pointerEvents = "none";
-    confetti.style.zIndex = "99999";
-    confetti.style.left = Math.random() * 100 + "%";
-    confetti.style.top = "-10px";
-    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-    confetti.style.width = Math.random() * 10 + 5 + "px";
-    confetti.style.height = Math.random() * 10 + 5 + "px";
-    confetti.style.borderRadius = Math.random() > 0.5 ? "50%" : "0";
-    confetti.style.animation = `fall ${2 + Math.random()}s linear forwards`;
-    
-    document.body.appendChild(confetti);
-    setTimeout(() => confetti.remove(), 2500);
-  }
+// Non-blocking notification system (Replaces alert())
+function showToast(message, isError = false) {
+  const toast = createStyledElement("div", {
+    position: "fixed",
+    top: "20px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    backgroundColor: isError ? "#f44336" : "#28a745",
+    color: "white",
+    padding: "12px 24px",
+    borderRadius: "8px",
+    zIndex: "100000",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+    fontFamily: "Arial, sans-serif",
+    fontSize: "14px",
+    fontWeight: "bold",
+    transition: "opacity 0.5s ease"
+  }, message);
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    setTimeout(() => toast.remove(), 500);
+  }, 3000);
 }
 
-// Add CSS animation for confetti fall
-if (!document.getElementById("confetti-styles-content")) {
-  const style = document.createElement("style");
-  style.id = "confetti-styles-content";
-  style.textContent = `
-    @keyframes fall {
-      to {
-        transform: translateY(100vh) rotate(360deg);
-        opacity: 0;
-      }
-    }
-  `;
-  document.head.appendChild(style);
-}
+// --- CORE LOGIC ---
 
 function saveProblem(title, url, difficulty, intervals) {
   const problem = {
@@ -154,93 +53,150 @@ function saveProblem(title, url, difficulty, intervals) {
     nextRevisionDate: new Date().toISOString()
   };
 
-  try {
-    chrome.storage.local.get(["problems"], (res) => {
-      // Check if chrome context is still valid
+  chrome.storage.local.get(["problems"], (res) => {
+    if (chrome.runtime.lastError) {
+      showToast("Extension context error. Please refresh.", true);
+      return;
+    }
+
+    let problems = res.problems || [];
+    const exists = problems.some(p => p.url === url);
+
+    if (exists) {
+      showToast("This problem is already saved!", true);
+      return;
+    }
+
+    problems.push(problem);
+
+    chrome.storage.local.set({ problems }, () => {
       if (chrome.runtime.lastError) {
-        console.warn("Extension context invalidated");
-        return;
+        showToast("Failed to save. Check storage permissions.", true);
+      } else {
+        showToast("Problem saved to your revision list!");
       }
-
-      let problems = res.problems || [];
-
-      // prevent duplicates
-      const exists = problems.some(p => p.url === url);
-      if (exists) {
-        alert("Already saved!");
-        return;
-      }
-
-      problems.push(problem);
-
-      chrome.storage.local.set({ problems }, () => {
-        if (chrome.runtime.lastError) {
-          console.warn("Extension context invalidated on save");
-          return;
-        }
-        alert("Saved!");
-      });
     });
-  } catch (error) {
-    console.error("Extension context error:", error);
+  });
+}
+
+function showDifficultyModal(title, url) {
+  const overlay = createStyledElement("div", {
+    position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: "10000",
+    display: "flex", justifyContent: "center", alignItems: "center"
+  });
+
+  const modal = createStyledElement("div", {
+    backgroundColor: "white", padding: "28px", borderRadius: "12px",
+    width: "420px", boxShadow: "0 8px 16px rgba(0, 0, 0, 0.2)",
+    fontFamily: "Arial, sans-serif", boxSizing: "border-box"
+  });
+
+  // Header
+  const header = createStyledElement("div", { marginBottom: "20px", borderBottom: "2px solid #28a745", paddingBottom: "15px" });
+  const h2 = createStyledElement("h2", { margin: "0", color: "#333", fontSize: "18px" }, "Save Problem");
+  const pTitle = createStyledElement("p", { margin: "8px 0 0 0", color: "#666", fontSize: "14px" }, title);
+  header.append(h2, pTitle);
+
+  // Difficulty Input
+  const diffLabel = createStyledElement("label", { display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "14px" }, "🎯 Difficulty / Tag");
+  const diffInput = createStyledElement("input", { width: "100%", padding: "12px", border: "2px solid #ddd", borderRadius: "6px", marginBottom: "15px", boxSizing: "border-box" });
+  diffInput.placeholder = "e.g., Medium, DP, Tricky...";
+
+  // Interval Input
+  const intLabel = createStyledElement("label", { display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "14px" }, "📅 Revision Intervals (Days)");
+  const intInput = createStyledElement("input", { width: "100%", padding: "12px", border: "2px solid #ddd", borderRadius: "6px", boxSizing: "border-box" });
+  intInput.placeholder = "Default: 2, 7, 10";
+
+  // Actions
+  const btnContainer = createStyledElement("div", { display: "flex", gap: "12px", marginTop: "25px" });
+  const saveBtn = createStyledElement("button", { flex: "1", padding: "14px", background: "#28a745", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }, "Save");
+  const cancelBtn = createStyledElement("button", { flex: "1", padding: "14px", background: "#e0e0e0", color: "#333", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }, "Cancel");
+
+  saveBtn.onclick = () => {
+    const difficulty = diffInput.value.trim() || "Unspecified";
+    let intervals = [2, 7, 10];
+    
+    if (intInput.value.trim()) {
+      const parsed = intInput.value.split(",").map(x => parseInt(x.trim()));
+      if (parsed.some(isNaN) || parsed.length < 1) {
+        showToast("Invalid interval format. Use: 1, 5, 10", true);
+        return;
+      }
+      intervals = parsed;
+    }
+
+    saveProblem(title, url, difficulty, intervals);
+    overlay.remove();
+  };
+
+  cancelBtn.onclick = () => overlay.remove();
+
+  btnContainer.append(saveBtn, cancelBtn);
+  modal.append(header, diffLabel, diffInput, intLabel, intInput, btnContainer);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+// --- VISUAL EFFECTS ---
+
+function triggerConfetti() {
+  const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8"];
+  for (let i = 0; i < 40; i++) {
+    const confetti = createStyledElement("div", {
+      position: "fixed", pointerEvents: "none", zIndex: "99999",
+      left: Math.random() * 100 + "%", top: "-10px",
+      backgroundColor: colors[Math.floor(Math.random() * colors.length)],
+      width: "8px", height: "8px",
+      animation: `fall ${2 + Math.random()}s linear forwards`
+    });
+    document.body.appendChild(confetti);
+    setTimeout(() => confetti.remove(), 2500);
   }
 }
 
+// Add Animation Styles
+const style = document.createElement("style");
+style.textContent = `@keyframes fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }`;
+document.head.appendChild(style);
+
+// --- INITIALIZATION ---
+
 function addButton() {
-  // prevent duplicate button
   if (document.getElementById("dsa-save-btn")) return;
 
-  const btn = document.createElement("button");
+  const btn = createStyledElement("button", {
+    position: "fixed", top: "120px", right: "20px", zIndex: "9999",
+    padding: "10px 18px", backgroundColor: "#28a745", color: "white",
+    border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
+  }, "Save");
+
   btn.id = "dsa-save-btn";
-  btn.innerText = "Save";
-
-  // styling
-  btn.style.position = "fixed";
-  btn.style.top = "120px";
-  btn.style.right = "20px";
-  btn.style.zIndex = "9999";
-  btn.style.padding = "10px";
-  btn.style.backgroundColor = "#28a745";
-  btn.style.color = "white";
-  btn.style.border = "none";
-  btn.style.borderRadius = "6px";
-  btn.style.cursor = "pointer";
-
   btn.onclick = () => {
-    const title =
-      document.querySelector('div[data-cy="question-title"]')?.innerText ||
-      document.title;
-
-    const url = window.location.href;
-
-    // Show modal for difficulty and custom intervals
-    showDifficultyModal(title, url);
+    const title = document.querySelector('div[data-cy="question-title"]')?.innerText || document.title;
+    showDifficultyModal(title, window.location.href);
   };
 
   document.body.appendChild(btn);
 }
 
-
-// 🔥 IMPORTANT: wait for page to load properly
+// Wait for LeetCode's dynamic UI to settle
 window.addEventListener("load", () => {
-  setTimeout(addButton, 1500);
-  
-  // Monitor for AC (Accepted) verdict on LeetCode with debouncing to avoid freezing
+  setTimeout(addButton, 2000);
+
   let debounceTimer;
   const observer = new MutationObserver(() => {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
+      // Selector for the submission result panel
       const verdict = document.querySelector('[data-testid="result-tab-panel"]');
       if (verdict && verdict.innerText.includes("Accepted")) {
         triggerConfetti();
-        observer.disconnect(); // Stop observing after confetti
+        observer.disconnect(); 
       }
-    }, 500); // Only check every 500ms
+    }, 1000);
   });
-  
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    characterData: false
-  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
 });

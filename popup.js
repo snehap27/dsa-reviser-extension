@@ -1,205 +1,156 @@
-chrome.storage.local.get(["problems"], (res) => {
-  const list = document.getElementById("list");
-  const problems = res.problems || [];
+// popup.js
 
-  const today = new Date();
-
-  // Filter due problems safely
-  const dueProblems = problems.filter(p => {
-    if (!p.nextRevisionDate) return false;
-    return new Date(p.nextRevisionDate) <= today;
-  });
-
-  // ---------- EMPTY STATE ----------
-  if (problems.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "empty";
-    empty.innerText = "No problems saved yet.";
-    list.appendChild(empty);
-    return;
+/**
+ * Enhanced helper to create elements safely.
+ * Handles standard properties, style strings, and data-attributes.
+ */
+function createEl(tag, props = {}, text = "") {
+  const el = document.createElement(tag);
+  
+  for (const [key, value] of Object.entries(props)) {
+    if (key === "style") {
+      el.style.cssText = value;
+    } else if (key.startsWith("data-")) {
+      el.setAttribute(key, value);
+    } else {
+      el[key] = value;
+    }
   }
+  
+  if (text) el.textContent = text;
+  return el;
+}
 
-  // ---------- DUE PROBLEMS ----------
-  const dueHeader = document.createElement("h3");
-  dueHeader.innerText = `📌 ${dueProblems.length} Problem${dueProblems.length !== 1 ? 's' : ''} to Revise Today!`;
-  list.appendChild(dueHeader);
+function renderList() {
+  const list = document.getElementById("list");
+  if (!list) return;
+  list.textContent = ""; 
 
-  if (dueProblems.length === 0) {
-    const noDue = document.createElement("p");
-    noDue.className = "empty";
-    noDue.innerText = "No revisions due 🎉";
-    list.appendChild(noDue);
-  } else {
-    dueProblems.forEach(p => {
-      const nextRevisionDays = calculateDaysUntilRevision(p.nextRevisionDate, today);
-      const difficulty = p.difficulty || "Unspecified";
-      
-      const div = document.createElement("div");
-      div.className = "card";
+  chrome.storage.local.get(["problems"], (res) => {
+    const problems = res.problems || [];
+    const today = new Date();
 
-      div.innerHTML = `
-        <div class="title">${p.title}</div>
-        <div style="font-size: 12px; color: #666; margin: 5px 0;">
-          Difficulty: <strong>${difficulty}</strong> | Next revision: ${nextRevisionDays > 0 ? nextRevisionDays + ' days' : 'Today'}
-        </div>
-        <a href="${p.url}" target="_blank">Revise</a><br/>
-        <button data-url="${p.url}" class="done-btn">Done</button>
-      `;
+    if (problems.length === 0) {
+      list.appendChild(createEl("p", { className: "empty", style: "text-align:center; color:#666;" }, "No problems saved yet."));
+      return;
+    }
 
-      list.appendChild(div);
+    const dueProblems = problems.filter(p => p.nextRevisionDate && new Date(p.nextRevisionDate) <= today);
+
+    // Section: Due
+    list.appendChild(createEl("h3", { style: "margin-top:0" }, "📌 Due for Revision"));
+    if (dueProblems.length === 0) {
+      list.appendChild(createEl("p", { className: "empty" }, "All caught up! 🎉"));
+    } else {
+      dueProblems.forEach(p => list.appendChild(createProblemCard(p, true, today)));
+    }
+
+    // Section: All
+    list.appendChild(createEl("h3", { style: "margin-top:20px" }, "📚 Your Library"));
+    problems.forEach(p => list.appendChild(createProblemCard(p, false, today)));
+  });
+}
+
+function createProblemCard(p, isDue, today) {
+  const card = createEl("div", { 
+    className: "card", 
+    style: "border:1px solid #ddd; padding:10px; border-radius:8px; margin-bottom:10px; background:#fff;" 
+  });
+  
+  const title = createEl("div", { style: "font-weight:bold; color:#333; margin-bottom:4px;" }, p.title);
+  
+  const daysUntil = calculateDaysUntilRevision(p.nextRevisionDate, today);
+  const nextText = daysUntil > 0 ? `Next in ${daysUntil} days` : "Due Today";
+  const info = createEl("div", { style: "font-size:11px; color:#888; margin-bottom:8px;" }, `Diff: ${p.difficulty || 'N/A'} • ${nextText}`);
+
+  const btnContainer = createEl("div", { style: "display:flex; gap:8px; align-items:center;" });
+
+  const link = createEl("a", { 
+    href: p.url, 
+    target: "_blank", 
+    style: "font-size:12px; color:#1673d6; text-decoration:none; font-weight:bold;" 
+  }, "Open Link");
+
+  const actionBtn = isDue 
+    ? createEl("button", { 
+        className: "done-btn", 
+        style: "background:#28a745; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;" 
+      }, "Mark Done")
+    : createEl("button", { 
+        className: "delete-btn", 
+        style: "background:#dc3545; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px;" 
+      }, "Delete");
+
+  // Force the data-url attribute
+  actionBtn.setAttribute("data-url", p.url);
+
+  btnContainer.append(link, actionBtn);
+  card.append(title, info, btnContainer);
+  return card;
+}
+
+// Global Click Listener
+document.addEventListener("click", (e) => {
+  const btn = e.target;
+  const url = btn.getAttribute("data-url");
+
+  if (!url) return; 
+
+  if (btn.classList.contains("delete-btn")) {
+    chrome.storage.local.get(["problems"], (res) => {
+      const updated = (res.problems || []).filter(p => p.url !== url);
+      chrome.storage.local.set({ problems: updated }, renderList);
     });
   }
 
-  // ---------- ALL PROBLEMS ----------
-  const allHeader = document.createElement("h3");
-  allHeader.innerText = "📚 All Problems";
-  list.appendChild(allHeader);
+  if (btn.classList.contains("done-btn")) {
+    // TRIGGER CONFETTI HERE
+    triggerConfetti();
 
-  problems.forEach(p => {
-    const nextRevisionDays = calculateDaysUntilRevision(p.nextRevisionDate, today);
-    const difficulty = p.difficulty || "Unspecified";
-    
-    const div = document.createElement("div");
-    div.className = "card";
-
-    div.innerHTML = `
-      <div class="title">${p.title}</div>
-      <div style="font-size: 12px; color: #666; margin: 5px 0;">
-        Difficulty: <span class="edit-diff" data-url="${p.url}" style="cursor: pointer; color: #007bff;">${difficulty}</span> | 
-        Next revision: ${nextRevisionDays > 0 ? nextRevisionDays + ' days' : 'Today'}
-      </div>
-      <a href="${p.url}" target="_blank">Open</a>
-      <button data-url="${p.url}" class="delete-btn" style="margin-left: 10px; background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer;">Delete</button>
-    `;
-
-    list.appendChild(div);
-  });
+    chrome.storage.local.get(["problems"], (res) => {
+      const updated = (res.problems || []).map(p => {
+        if (p.url === url) {
+          const today = new Date();
+          const history = p.revisionHistory || [];
+          history.push({ date: today.toISOString() });
+          
+          const steps = p.revisionConfig?.steps || [2, 7, 10];
+          const days = steps[history.length - 1] || 14;
+          
+          const nextDate = new Date();
+          nextDate.setDate(nextDate.getDate() + days);
+          
+          return { ...p, revisionHistory: history, nextRevisionDate: nextDate.toISOString() };
+        }
+        return p;
+      });
+      chrome.storage.local.set({ problems: updated }, () => {
+          // Delay reload so confetti is visible
+          setTimeout(renderList, 1500);
+      });
+    });
+  }
 });
 
 function calculateDaysUntilRevision(nextRevisionDate, today) {
-  const revisionDate = new Date(nextRevisionDate);
-  const timeDiff = revisionDate - today;
-  const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-  return daysDiff;
+  if (!nextRevisionDate) return 0;
+  const diff = new Date(nextRevisionDate) - today;
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
-// ---------- CONFETTI ANIMATION ----------
 function triggerConfetti() {
-  const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F", "#BB8FCE"];
-  
-  for (let i = 0; i < 50; i++) {
-    const confetti = document.createElement("div");
-    confetti.style.position = "fixed";
-    confetti.style.pointerEvents = "none";
-    confetti.style.zIndex = "99999";
-    confetti.style.left = Math.random() * 100 + "%";
-    confetti.style.top = "-10px";
-    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-    confetti.style.width = Math.random() * 10 + 5 + "px";
-    confetti.style.height = Math.random() * 10 + 5 + "px";
-    confetti.style.borderRadius = Math.random() > 0.5 ? "50%" : "0";
-    confetti.style.animation = `fall ${2 + Math.random()}s linear forwards`;
-    
+  const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8"];
+  for (let i = 0; i < 35; i++) {
+    const confetti = createEl("div", {
+      style: `position:fixed; pointer-events:none; z-index:99999; 
+              left:${Math.random() * 100}%; top:-10px; 
+              background-color:${colors[Math.floor(Math.random() * colors.length)]}; 
+              width:8px; height:8px; border-radius:${Math.random() > 0.5 ? '50%' : '0'};
+              animation: fall ${2 + Math.random()}s linear forwards;`
+    });
     document.body.appendChild(confetti);
     setTimeout(() => confetti.remove(), 2500);
   }
 }
 
-// Add CSS animation for confetti fall
-if (!document.getElementById("confetti-styles")) {
-  const style = document.createElement("style");
-  style.id = "confetti-styles";
-  style.textContent = `
-    @keyframes fall {
-      to {
-        transform: translateY(100vh) rotate(360deg);
-        opacity: 0;
-      }
-    }
-  `;
-  document.head.appendChild(style);
-}
-
-// ---------- EDIT DIFFICULTY ----------
-document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("edit-diff")) {
-    const url = e.target.getAttribute("data-url");
-    const currentDifficulty = e.target.innerText;
-    const newDifficulty = prompt("Edit difficulty:", currentDifficulty);
-    if (newDifficulty !== null) {
-      chrome.storage.local.get(["problems"], (res) => {
-        if (chrome.runtime.lastError) return;
-        const problems = res.problems || [];
-        const problem = problems.find(p => p.url === url);
-        if (problem) {
-          problem.difficulty = newDifficulty.trim() || "Medium";
-          chrome.storage.local.set({ problems }, () => {
-            if (chrome.runtime.lastError) return;
-            location.reload();
-          });
-        }
-      });
-    }
-  }
-});
-
-// ---------- DELETE BUTTON ----------
-document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("delete-btn")) {
-    const url = e.target.getAttribute("data-url");
-    
-    chrome.storage.local.get(["problems"], (res) => {
-      if (chrome.runtime.lastError) return;
-      let problems = res.problems || [];
-      problems = problems.filter(p => p.url !== url);
-      
-      chrome.storage.local.set({ problems }, () => {
-        if (chrome.runtime.lastError) return;
-        location.reload();
-      });
-    });
-  }
-});
-
-// ---------- DONE BUTTON ----------
-document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("done-btn")) {
-    const url = e.target.getAttribute("data-url");
-    
-    triggerConfetti();
-
-    chrome.storage.local.get(["problems"], (res) => {
-      if (chrome.runtime.lastError) return;
-      let problems = res.problems || [];
-
-      problems = problems.map(p => {
-        if (p.url === url) {
-          const today = new Date();
-
-          if (!p.revisionHistory) p.revisionHistory = [];
-          if (!p.revisionConfig) {
-            p.revisionConfig = { type: "custom", steps: [2, 7, 10] };
-          }
-
-          // add revision entry
-          p.revisionHistory.push({ date: today.toISOString() });
-
-          // next revision
-          // const step = p.revisionHistory.length;
-          // const days = p.revisionConfig.steps[step] || 14;
-          const step = p.revisionHistory.length - 1;
-          const days = p.revisionConfig.steps[step] || 14;
-
-          const nextDate = new Date();
-          nextDate.setDate(nextDate.getDate() + days);
-
-          p.nextRevisionDate = nextDate.toISOString();
-        }
-        return p;
-      });
-
-      chrome.storage.local.set({ problems }, () => {        if (chrome.runtime.lastError) return;        setTimeout(() => location.reload(), 1500);
-      });
-    });
-  }
-});
+document.addEventListener("DOMContentLoaded", renderList);
