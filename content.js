@@ -5,7 +5,6 @@
 
 // --- UTILITY HELPERS ---
 
-// Safely creates elements with styles and text (Anti-XSS approach)
 function createStyledElement(tag, styles = {}, text = "") {
   const el = document.createElement(tag);
   Object.assign(el.style, styles);
@@ -13,7 +12,6 @@ function createStyledElement(tag, styles = {}, text = "") {
   return el;
 }
 
-// Non-blocking notification system (Replaces alert())
 function showToast(message, isError = false) {
   const toast = createStyledElement("div", {
     position: "fixed",
@@ -60,7 +58,8 @@ function saveProblem(title, url, difficulty, intervals) {
     }
 
     let problems = res.problems || [];
-    const exists = problems.some(p => p.url === url);
+    // Normalize URL to prevent duplicates on navigation
+    const exists = problems.some(p => p.url.split('?')[0] === url.split('?')[0]);
 
     if (exists) {
       showToast("This problem is already saved!", true);
@@ -92,23 +91,19 @@ function showDifficultyModal(title, url) {
     fontFamily: "Arial, sans-serif", boxSizing: "border-box"
   });
 
-  // Header
   const header = createStyledElement("div", { marginBottom: "20px", borderBottom: "2px solid #28a745", paddingBottom: "15px" });
   const h2 = createStyledElement("h2", { margin: "0", color: "#333", fontSize: "18px" }, "Save Problem");
   const pTitle = createStyledElement("p", { margin: "8px 0 0 0", color: "#666", fontSize: "14px" }, title);
   header.append(h2, pTitle);
 
-  // Difficulty Input
-  const diffLabel = createStyledElement("label", { display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "14px" }, "🎯 Difficulty / Tag");
+  const diffLabel = createStyledElement("label", { display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "14px", color: "#232323"}, "🎯 Difficulty / Tag");
   const diffInput = createStyledElement("input", { width: "100%", padding: "12px", border: "2px solid #ddd", borderRadius: "6px", marginBottom: "15px", boxSizing: "border-box" });
   diffInput.placeholder = "e.g., Medium, DP, Tricky...";
 
-  // Interval Input
-  const intLabel = createStyledElement("label", { display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "14px" }, "📅 Revision Intervals (Days)");
+  const intLabel = createStyledElement("label", { display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "14px", color: "#232323" }, "📅 Revision Intervals (Days)");
   const intInput = createStyledElement("input", { width: "100%", padding: "12px", border: "2px solid #ddd", borderRadius: "6px", boxSizing: "border-box" });
   intInput.placeholder = "Default: 2, 7, 10";
 
-  // Actions
   const btnContainer = createStyledElement("div", { display: "flex", gap: "12px", marginTop: "25px" });
   const saveBtn = createStyledElement("button", { flex: "1", padding: "14px", background: "#28a745", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }, "Save");
   const cancelBtn = createStyledElement("button", { flex: "1", padding: "14px", background: "#e0e0e0", color: "#333", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }, "Cancel");
@@ -116,7 +111,6 @@ function showDifficultyModal(title, url) {
   saveBtn.onclick = () => {
     const difficulty = diffInput.value.trim() || "Unspecified";
     let intervals = [2, 7, 10];
-    
     if (intInput.value.trim()) {
       const parsed = intInput.value.split(",").map(x => parseInt(x.trim()));
       if (parsed.some(isNaN) || parsed.length < 1) {
@@ -125,7 +119,6 @@ function showDifficultyModal(title, url) {
       }
       intervals = parsed;
     }
-
     saveProblem(title, url, difficulty, intervals);
     overlay.remove();
   };
@@ -155,7 +148,6 @@ function triggerConfetti() {
   }
 }
 
-// Add Animation Styles
 const style = document.createElement("style");
 style.textContent = `@keyframes fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }`;
 document.head.appendChild(style);
@@ -164,39 +156,45 @@ document.head.appendChild(style);
 
 function addButton() {
   if (document.getElementById("dsa-save-btn")) return;
-
   const btn = createStyledElement("button", {
     position: "fixed", top: "120px", right: "20px", zIndex: "9999",
     padding: "10px 18px", backgroundColor: "#28a745", color: "white",
     border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold",
     boxShadow: "0 2px 5px rgba(0,0,0,0.2)"
   }, "Save");
-
   btn.id = "dsa-save-btn";
   btn.onclick = () => {
-    const title = document.querySelector('div[data-cy="question-title"]')?.innerText || document.title;
+    const title = document.querySelector('div[data-cy="question-title"]')?.innerText || document.title.split(' - LeetCode')[0];
     showDifficultyModal(title, window.location.href);
   };
-
   document.body.appendChild(btn);
 }
 
-// Wait for LeetCode's dynamic UI to settle
-window.addEventListener("load", () => {
-  setTimeout(addButton, 2000);
+// THE SPA FIX: Keep track of the URL and state
+let lastUrl = location.href;
+let hasCelebrated = false;
 
-  let debounceTimer;
-  const observer = new MutationObserver(() => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      // Selector for the submission result panel
-      const verdict = document.querySelector('[data-testid="result-tab-panel"]');
-      if (verdict && verdict.innerText.includes("Accepted")) {
-        triggerConfetti();
-        observer.disconnect(); 
-      }
-    }, 1000);
-  });
+const observer = new MutationObserver(() => {
+  // 1. Detect if the user navigated to a new problem
+  if (location.href !== lastUrl) {
+    lastUrl = location.href;
+    hasCelebrated = false;
+    addButton(); // Re-add button if LeetCode wiped the DOM
+  }
 
-  observer.observe(document.body, { childList: true, subtree: true });
+  // 2. Ensure button exists (sometimes LeetCode renders late)
+  addButton();
+
+  // 3. Check for solve (Debounced logic)
+  const verdict = document.querySelector('[data-testid="result-tab-panel"]');
+  if (verdict && verdict.innerText.includes("Accepted") && !hasCelebrated) {
+    triggerConfetti();
+    hasCelebrated = true; // Only celebrate once per problem submission
+  }
 });
+
+// Start observing immediately
+observer.observe(document.body, { childList: true, subtree: true });
+
+// Initial delay for first load
+setTimeout(addButton, 2000);
