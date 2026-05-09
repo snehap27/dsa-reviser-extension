@@ -34,6 +34,7 @@ No data is collected or sent externally.
 4. Select this folder
 
 ## Screenshots
-<img width="956" height="438" alt="image" src="https://github.com/user-attachments/assets/5b69583c-db39-445c-ba09-a21623a19d74" />
-<img width="1280" height="800" alt="dsa-reviser2 (1)" src="https://github.com/user-attachments/assets/f4bad94d-cfcf-4036-9967-a2afd98eefe9" />
+<img width="640" height="404" alt="image" src="https://github.com/user-attachments/assets/c65bf087-aa9d-4bef-aa7c-21a0a2e88e89" />
+<img width="818" height="441" alt="image" src="https://github.com/user-attachments/assets/e21f4ab2-5c91-46e7-9b26-8a6e8e1d5d0d" />
+
 <img width="1280" height="800" alt="dsa-reviser3 (1)" src="https://github.com/user-attachments/assets/92487b85-f0ac-4dd0-8384-4a37332561f0" />
