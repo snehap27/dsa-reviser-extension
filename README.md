@@ -1,6 +1,7 @@
 # DSA Reviser – Spaced Repetition for LeetCode
 
 A Chrome extension that helps you retain DSA problems using spaced repetition.
+Link: https://chromewebstore.google.com/detail/hfbcafaminobplkbjnmpddfiphcbbalo?utm_source=item-share-cb
 
 ## Features
 
